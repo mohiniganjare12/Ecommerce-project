@@ -1,0 +1,27 @@
+# Never commit node_modules
+**/node_modules/
+
+# Never commit .env files (secrets)
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Build outputs
+**/build/
+**/dist/
+
+# Logs
+**/*.log
+**/logs/
+
+# Uploads (user-generated content)
+**/uploads/*
+!**/uploads/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
