@@ -1,12 +1,12 @@
 import { useState } from 'react';
+import api from '../../utils/api';
 
 export default function AISearchBar({ onSearch, initialQuery = '' }) {
-  const [query, setQuery] = useState(initialQuery);
-  const [aiMode, setAiMode] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
+  const [query, setQuery]               = useState(initialQuery);
+  const [aiLoading, setAiLoading]       = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState([]);
-  const [aiError, setAiError] = useState('');
-  const [open, setOpen] = useState(false);
+  const [aiHint, setAiHint]             = useState('');
+  const [open, setOpen]                 = useState(false);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -16,47 +16,35 @@ export default function AISearchBar({ onSearch, initialQuery = '' }) {
   const handleAISearch = async () => {
     if (!query.trim()) return;
     setAiLoading(true);
-    setAiError('');
+    setAiHint('');
     setAiSuggestions([]);
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: `You are a helpful shopping assistant for an e-commerce store. 
-When a user describes what they're looking for, respond with ONLY a JSON object (no markdown, no extra text):
-{
-  "mainSearch": "primary search keyword",
-  "suggestions": ["keyword1", "keyword2", "keyword3"],
-  "hint": "one-sentence shopping tip"
-}`,
-          messages: [{ role: 'user', content: `I'm looking for: ${query}` }],
-        }),
-      });
-      const data = await res.json();
-      const text = data.content?.[0]?.text || '';
-      const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
-      setAiSuggestions(parsed.suggestions || []);
-      if (parsed.hint) setAiError(parsed.hint);
-      if (parsed.mainSearch) { onSearch(parsed.mainSearch); setQuery(parsed.mainSearch); }
+      // Call your own backend AI route — keeps API key safe on server
+      const { data } = await api.post('/products/ai-search', { query: query.trim() });
+      setAiSuggestions(data.suggestions || []);
+      if (data.hint) setAiHint(data.hint);
+      if (data.mainSearch) {
+        onSearch(data.mainSearch);
+        setQuery(data.mainSearch);
+      }
       setOpen(true);
     } catch {
-      setAiError('AI search unavailable. Using regular search.');
+      // Fallback to regular search if AI fails
+      setAiHint('AI search unavailable. Showing regular results.');
       onSearch(query.trim());
-    } finally { setAiLoading(false); }
+      setOpen(false);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   return (
     <div style={styles.wrapper}>
       <form onSubmit={handleSearch} style={styles.form}>
         <div style={styles.inputWrap}>
-          {/* Icon */}
           <svg style={styles.searchIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
-
           <input
             value={query}
             onChange={e => { setQuery(e.target.value); setOpen(false); }}
@@ -64,11 +52,10 @@ When a user describes what they're looking for, respond with ONLY a JSON object 
             style={styles.input}
             onFocus={() => aiSuggestions.length > 0 && setOpen(true)}
           />
-
           {query && (
-            <button type="button" onClick={() => { setQuery(''); setAiSuggestions([]); onSearch(''); }} style={styles.clearBtn}>
-              ×
-            </button>
+            <button type="button"
+              onClick={() => { setQuery(''); setAiSuggestions([]); setAiHint(''); onSearch(''); }}
+              style={styles.clearBtn}>×</button>
           )}
         </div>
 
@@ -81,31 +68,25 @@ When a user describes what they're looking for, respond with ONLY a JSON object 
           style={{ ...styles.aiBtn, ...(aiLoading ? styles.aiBtnLoading : {}) }}
           title="AI-powered smart search"
         >
-          {aiLoading ? (
-            <span style={styles.spinner} />
-          ) : (
-            <>
-              <span>✨</span>
-              <span style={{ fontSize: '0.82rem', fontWeight: '600' }}>AI Search</span>
-            </>
-          )}
+          {aiLoading
+            ? <span style={styles.spinner} />
+            : <><span>✨</span><span style={{ fontSize: '0.82rem', fontWeight: '600' }}>AI Search</span></>}
         </button>
       </form>
 
-      {/* AI Results dropdown */}
+      {/* AI suggestions dropdown */}
       {open && aiSuggestions.length > 0 && (
         <div style={styles.dropdown}>
-          {aiError && (
+          {aiHint && (
             <div style={styles.hint}>
-              <span style={{ marginRight: '6px' }}>💡</span>{aiError}
+              <span style={{ marginRight: '6px' }}>💡</span>{aiHint}
             </div>
           )}
           <p style={styles.dropdownLabel}>Related searches:</p>
           <div style={styles.suggestions}>
             {aiSuggestions.map(s => (
               <button key={s} style={styles.suggestion}
-                onClick={() => { onSearch(s); setQuery(s); setOpen(false); }}
-              >
+                onClick={() => { onSearch(s); setQuery(s); setOpen(false); }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
@@ -116,8 +97,8 @@ When a user describes what they're looking for, respond with ONLY a JSON object 
         </div>
       )}
 
-      {!open && aiError && !aiSuggestions.length && (
-        <div style={styles.hintBar}>💡 {aiError}</div>
+      {!open && aiHint && !aiSuggestions.length && (
+        <div style={styles.hintBar}>💡 {aiHint}</div>
       )}
     </div>
   );

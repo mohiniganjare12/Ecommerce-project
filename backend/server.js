@@ -15,18 +15,31 @@ app.use(helmet());
 
 // ── CORS — only allow your actual frontend(s), not the whole internet ──
 // Add every origin you actually use (local dev + deployed frontend URL).
+// Allow all origins in development
+// In production, replace with specific domains
 const allowedOrigins = [
-  'http://localhost:3000',                 // local React dev server
-  process.env.FRONTEND_URL,                // deployed frontend (set this in .env)
-].filter(Boolean); // removes undefined if FRONTEND_URL isn't set yet
+  'http://localhost:3000',
+  'http://localhost:3001',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps, curl, Postman)
+    // Allow requests with no origin (mobile apps, curl, Postman)
     if (!origin) return callback(null, true);
+    // Allow localhost on any port (for local development)
+    if (origin.match(/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/)) {
+      return callback(null, true);
+    }
+    // Allow local network IPs (192.168.x.x, 10.x.x.x) for mobile testing
+    if (origin.match(/^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/)) {
+      return callback(null, true);
+    }
+    // Allow whitelisted origins
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
+    console.error('CORS blocked:', origin);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,

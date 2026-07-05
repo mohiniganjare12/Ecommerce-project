@@ -1,19 +1,17 @@
 import axios from 'axios';
 
-// Automatically finds the backend - works on ANY port, ANY IP, ANY device
 function getBaseURL() {
   // If env variable is set, use it
   if (process.env.REACT_APP_API_URL) {
     return process.env.REACT_APP_API_URL;
   }
-  // Auto-detect: same hostname as frontend, backend on port 5000
+  // Auto-detect: use same hostname as frontend, backend on port 5000
+  // This works for BOTH localhost AND mobile (10.228.161.88:3000 → 10.228.161.88:5000)
   const { protocol, hostname } = window.location;
   return `${protocol}//${hostname}:5000/api`;
 }
 
-const BASE_URL = getBaseURL();
-
-const api = axios.create({ baseURL: BASE_URL });
+const api = axios.create({ baseURL: getBaseURL() });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken');
@@ -29,9 +27,9 @@ api.interceptors.response.use(
       original._retry = true;
       try {
         const refreshToken = localStorage.getItem('refreshToken');
-        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
+        const BASE = getBaseURL();
+        const { data } = await axios.post(`${BASE}/auth/refresh`, { refreshToken });
         localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken || data.accessToken);
         original.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(original);
       } catch {

@@ -37,7 +37,12 @@ export default function ProductCard({product}){
       <Link to={`/products/${product._id}`} style={{display:'block',position:'relative',overflow:'hidden'}}>
         <div style={S.imgBox}>
           {!loaded&&<div className="skeleton" style={{position:'absolute',inset:0}}/>}
-          <img src={img} alt={product.name} style={{...S.img,opacity:loaded?1:0,transform:hov?'scale(1.07)':'scale(1)'}} onLoad={()=>setLoaded(true)}/>
+          <img src={img} alt={product.name} style={{...S.img,opacity:loaded?1:0,transform:hov?'scale(1.07)':'scale(1)'}} onLoad={()=>setLoaded(true)}
+          onError={e=>{
+            e.target.onerror=null;
+            e.target.src=`https://placehold.co/400x300/13131F/7C6FFF?text=${encodeURIComponent((product.name||'Product').slice(0,15))}`;
+            setLoaded(true);
+          }}/>
           <div style={{...S.overlay,opacity:hov?1:0}}>
             <span style={S.overlayTxt}>Quick View →</span>
           </div>

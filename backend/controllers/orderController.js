@@ -18,8 +18,11 @@ exports.createOrder = async (req, res) => {
 
     const enriched = [];
     for (const item of orderItems) {
-      const productId = item.product?._id || item.product;
-
+      // Handle product id whether it comes as string, ObjectId, or nested object
+      let productId = item.product;
+      if (productId && typeof productId === 'object') {
+        productId = productId._id || productId.id || String(productId);
+      }
       if (!productId) {
         return res.status(400).json({ message: 'Invalid product in order items' });
       }
@@ -37,6 +40,7 @@ exports.createOrder = async (req, res) => {
         quantity: item.quantity || 1,
       });
 
+      // Update stock and sold count
       product.stock = Math.max(0, (product.stock || 0) - (item.quantity || 1));
       product.sold  = (product.sold  || 0) + (item.quantity || 1);
       await product.save();
@@ -56,7 +60,7 @@ exports.createOrder = async (req, res) => {
       status:          isPaid ? 'processing' : 'pending',
     });
 
-    // Clear user's cart
+    // Clear user's cart after successful order
     try {
       await Cart.findOneAndUpdate(
         { user: req.user._id },
@@ -64,8 +68,7 @@ exports.createOrder = async (req, res) => {
       );
     } catch (_) {}
 
-    console.log(`✅ Order created: ${order._id} | User: ${req.user.email} | Total: $${totalPrice}`);
-
+    console.log(`✅ Order created: ${order._id} | Total: $${totalPrice}`);
     res.status(201).json(order);
 
   } catch (err) {
@@ -97,7 +100,10 @@ exports.getOrderById = async (req, res) => {
 
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
-    if (order.user._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    if (
+      order.user._id.toString() !== req.user._id.toString() &&
+      req.user.role !== 'admin'
+    ) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
@@ -139,7 +145,7 @@ exports.updateOrderToDelivered = async (req, res) => {
   }
 };
 
-// @desc  Update status (admin)
+// @desc  Update order status (admin)
 // @route PUT /api/orders/:id/status
 exports.updateOrderStatus = async (req, res) => {
   try {
@@ -164,38 +170,52 @@ exports.cancelOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (order.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+
+    if (
+      order.user.toString() !== req.user._id.toString() &&
+      req.user.role !== 'admin'
+    ) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    if (['shipped','delivered'].includes(order.status)) {
-      return res.status(400).json({ message: 'Cannot cancel a shipped order' });
+
+    if (['shipped', 'delivered'].includes(order.status)) {
+      return res.status(400).json({ message: 'Cannot cancel a shipped or delivered order' });
     }
+
+    // Restore stock
     for (const item of order.orderItems) {
       await Product.findByIdAndUpdate(item.product, {
-        $inc: { stock: item.quantity, sold: -item.quantity }
+        $inc: { stock: item.quantity, sold: -item.quantity },
       });
     }
+
     order.status = 'cancelled';
     await order.save();
-    res.json({ message: 'Order cancelled' });
+    res.json({ message: 'Order cancelled successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// @desc  All orders (admin)
-// @route GET /api/orders/admin
+// @desc  Get all orders (admin)
+// @route GET /api/orders
 exports.getAllOrders = async (req, res) => {
   try {
-    const page  = parseInt(req.query.page)  || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const skip  = (page - 1) * limit;
+    const page   = parseInt(req.query.page)  || 1;
+    const limit  = parseInt(req.query.limit) || 20;
+    const skip   = (page - 1) * limit;
     const filter = {};
     if (req.query.status) filter.status = req.query.status;
+
     const [orders, total] = await Promise.all([
-      Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('user','name email'),
+      Order.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('user', 'name email'),
       Order.countDocuments(filter),
     ]);
+
     res.json({ orders, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -209,7 +229,7 @@ exports.deleteOrder = async (req, res) => {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
     await order.deleteOne();
-    res.json({ message: 'Order deleted' });
+    res.json({ message: 'Order deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

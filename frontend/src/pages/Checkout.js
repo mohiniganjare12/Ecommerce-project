@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -85,6 +85,15 @@ export default function Checkout() {
     city: '', state: '', zip: '', country: 'India',
   });
  
+  // Reset form when user changes — prevents phone/address leaking between accounts
+  useEffect(() => {
+    setAddr({ name: user?.name || '', phone: '', street: '', city: '', state: '', zip: '', country: 'India' });
+    setStep(1);
+    setCard({ number: '', expiry: '', cvv: '', name: '' });
+    setUpiId('');
+    setBank('');
+  }, [user?._id]);
+
   const [card, setCard] = useState({
     number: '', expiry: '', cvv: '', name: '',
   });
@@ -196,6 +205,7 @@ export default function Checkout() {
                         value={addr[f.key]}
                         onChange={e => setAddr({ ...addr, [f.key]: e.target.value })}
                         placeholder={f.ph}
+                        autoComplete={f.key === 'phone' ? 'new-password' : 'on'}
                         style={{ ...S.input, ...(addr[f.key] ? S.inputFilled : {}) }}
                       />
                     </div>
@@ -283,6 +293,7 @@ export default function Checkout() {
                                     value={card[f.key]}
                                     onChange={e => setCard({ ...card, [f.key]: f.format(e.target.value) })}
                                     placeholder={f.ph}
+                        autoComplete={f.key === 'phone' ? 'new-password' : 'on'}
                                     style={S.input}
                                   />
                                 </div>

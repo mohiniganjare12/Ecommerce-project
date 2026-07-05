@@ -1,4 +1,5 @@
 import{useEffect,useState,useRef}from'react';
+import useWindowSize from'../hooks/useWindowSize';
 import{Link}from'react-router-dom';
 import api from'../utils/api';
 import ProductCard from'../components/product/ProductCard';
@@ -34,12 +35,13 @@ const CATS=[
 ];
 
 const SLIDES=[
-  {pill:'New Season 2026 🔥',h1:'Discover',h2:'Future Shopping',sub:'AI-powered discovery. Premium products. Delivered fast.',grad:'linear-gradient(135deg,#7C6FFF,#FF6B9D)',emoji:'🛍️'},
+  {pill:'New Season 2025 🔥',h1:'Discover',h2:'Future Shopping',sub:'AI-powered discovery. Premium products. Delivered fast.',grad:'linear-gradient(135deg,#7C6FFF,#FF6B9D)',emoji:'🛍️'},
   {pill:'AI Powered ✨',h1:'Smart',h2:'Search & Find',sub:'Describe what you need — our AI finds it in seconds.',grad:'linear-gradient(135deg,#22D3EE,#7C6FFF)',emoji:'🤖'},
   {pill:'Top Deals Today 💎',h1:'Premium',h2:'Quality Brands',sub:'Curated products from the world\'s best brands.',grad:'linear-gradient(135deg,#FBBF24,#FF6B9D)',emoji:'💎'},
 ];
 
 export default function Home(){
+  const{isMobile}=useWindowSize();
   const[feat,setFeat]=useState([]);
   const[loading,setLoading]=useState(true);
   const[slide,setSlide]=useState(0);
@@ -72,7 +74,7 @@ export default function Home(){
         <div style={S.hBlob2}/>
         <div style={S.hBlob3}/>
         <div style={S.hGrid}/>
-        <div className="container" style={S.hInner}>
+        <div className="container" style={{...S.hInner,gridTemplateColumns:isMobile?'1fr':'1fr 1fr',padding:isMobile?'2.5rem 1rem':'5rem 1.5rem',gap:isMobile?'1.5rem':'4rem'}}>
           <div style={S.hLeft}>
             <div style={{...S.hPill,animation:'fadeUp .5s ease'}} key={slide+'p'}>
               <span style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--green)',display:'inline-block',boxShadow:'0 0 8px var(--green)'}}/>
@@ -186,7 +188,7 @@ export default function Home(){
       <section style={S.statsBand}>
         <div className="container">
           <div style={S.statsRow}>
-            {[['50000','K+','Happy Customers','👥'],['10000','+','Products','📦'],['150','+','Brands','🏷️'],['99','%','Satisfaction','⭐']].map(([n,suf,l,ic])=>(
+            {[['107','+','Products','📦'],['20','+','Categories','🏷️'],['100','%','Secure Checkout','🔒'],['24','/7','AI Support','🤖']].map(([n,suf,l,ic])=>(
               <div key={l} style={S.statCard}>
                 <div style={{fontSize:'1.8rem',marginBottom:'6px'}}>{ic}</div>
                 <div style={S.statN}><Counter end={parseInt(n)} suffix={suf}/></div>
@@ -227,10 +229,10 @@ export default function Home(){
         <div className="container">
           <h2 style={{...S.secTitle,textAlign:'center',marginBottom:'2.5rem'}}>Why <span className="gtext">NexusShop</span>?</h2>
           <div style={S.whyGrid}>
-            {[['🚚','Free Shipping','On all orders over $50. Lightning-fast delivery.','#7C6FFF'],
-              ['🔒','Secure Payments','Bank-grade Stripe encryption on every transaction.','#34D399'],
-              ['↩️','30-Day Returns','Full refund, no questions asked. We mean it.','#FF6B9D'],
-              ['🤖','AI Assistant','Claude-powered 24/7 support to find anything you need.','#FBBF24']].map(([ic,t,d,col])=>(
+            {[['🚚','Free Shipping','Free delivery on all orders over $50. Fast and reliable.','#7C6FFF'],
+              ['🔒','Secure Payments','Stripe-powered checkout with bank-grade encryption on every order.','#34D399'],
+              ['🛍️','Easy Cancellation','Cancel any unshipped order instantly from your orders page.','#FF6B9D'],
+              ['🤖','Gemini AI Assistant','Google Gemini-powered chatbot to help you find anything you need.','#FBBF24']].map(([ic,t,d,col])=>(
               <div key={t} style={S.whyCard}>
                 <div style={{...S.whyIcon,background:`${col}12`,color:col}}>{ic}</div>
                 <h3 style={{fontFamily:'var(--display)',fontSize:'.95rem',fontWeight:700,marginBottom:'7px'}}>{t}</h3>
